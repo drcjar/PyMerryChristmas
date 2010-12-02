@@ -151,6 +151,37 @@ class Snowman(pygame.sprite.Sprite):
             image.set_colorkey(colorkey, RLEACCEL)
         return image, image.get_rect()
 
+class Crosshair(object):
+    """
+    A friendly snowman that skates along the bottom of the screen
+    """
+
+    def __init__(self, image, screen):
+        # __init__ in parent class to
+        # load the image file for this sprite
+        self.image, self.rect = self.load_image(image, -1)
+        self.image.set_colorkey((255, 255, 255))
+        # get the area of the screen so we can detect when the sprite gets to
+        # the edge
+        self.area = screen.get_rect()
+        # starting position
+        self.rect.topleft = 10, 300 # x, y
+
+    def load_image(self, name, colorkey=None):
+        """
+        Loads an image for use as a sprite
+        """
+        try:
+            image = pygame.image.load(name)
+        except pygame.error, message:
+            print 'Cannot load image: %s' % name
+            raise SystemExit(message)
+        image = image.convert()
+        if colorkey is not None:
+            if colorkey is -1:
+                colorkey = image.get_at((0, 0))
+            image.set_colorkey(colorkey, RLEACCEL)
+        return image, image.get_rect()
 
 class Card(object):
     """
@@ -159,7 +190,7 @@ class Card(object):
     """
 
     def __init__(self, caption='Merry Christmas', background='snow.jpg',
-        music='silent_night.mp3', snowman='snowman.png', intensity=100):
+        music='AtrociousGenerosity.mp3', snowman='snowman.png', intensity=100):
         """
         Caption - game caption
         background - background image
@@ -180,6 +211,9 @@ class Card(object):
         self.let_it_snow(self.intensity)
         # pygame setup
         pygame.init()
+        if pygame.joystick.get_init(): 
+            print pygame.joystick.get_count()
+            print"we have joystick count"
         self.size = (size_x, size_y)
         self.window = pygame.display.set_mode(self.size)
         pygame.display.set_caption(caption)
@@ -207,6 +241,10 @@ class Card(object):
         self.draw_greeting()
         # draw the snowman
         frosty = Snowman(self.snowman, self.screen)
+        cross = Crosshair("data/Crosshairs.jpg", self.screen)
+        cross.image.set_colorkey(pygame.Color(255, 255, 255, 255))
+        self.cross = cross
+        self.cross_x, self.cross_y = (0,0)
         allsprites = pygame.sprite.RenderPlain((frosty,))
         allsprites.update()
         clock = pygame.time.Clock()
@@ -231,6 +269,7 @@ class Card(object):
         self.screen.blit(bg_image, (0, 0))
         # update the greeting
         self.draw_greeting()
+        self.draw_cross()
         # update the sprite(s)
         allsprites.update()
         allsprites.draw(self.screen)
@@ -245,6 +284,12 @@ class Card(object):
         self.snow = []
         for i in range(intensity):
             self.snow.append(Flake())
+
+    def draw_cross(self):
+        """
+        Draw the greeting onto the screen
+        """
+        self.screen.blit(self.cross.image, (self.cross_x, self.cross_y))
 
     def draw_greeting(self):
         """
@@ -287,8 +332,23 @@ class Card(object):
                     else:
                         self.let_it_snow(self.intensity)
                     self.snowing = not self.snowing
+                elif event.key == pygame.K_UP: 
+                    self.cross_y = self.cross_y - 5
+                    print "Up"
+                elif event.key == pygame.K_DOWN:
+                    self.cross_y = self.cross_y + 5
+                    print "Down"
+                elif event.key == pygame.K_LEFT:
+                    self.cross_x = self.cross_x - 5
+                    print "Left"
+                elif event.key == pygame.K_RIGHT:
+                    self.cross_x = self.cross_x + 5
+                    print "Right"
+                elif event.key == pygame.K_SPACE:
+                    pygame.mixer.music.load("data/rifle.wav")
+                    pygame.mixer.music.play(1)
 
-
+            
 if __name__ == "__main__":
     card = Card()
     card.display_card()
